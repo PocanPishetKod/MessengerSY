@@ -1,30 +1,38 @@
-﻿{
-  "$schema": "http://json.schemastore.org/launchsettings.json",
+{
   "iisSettings": {
-    "windowsAuthentication": false, 
-    "anonymousAuthentication": true, 
+    "windowsAuthentication": false,
+    "anonymousAuthentication": true,
     "iisExpress": {
       "applicationUrl": "http://localhost:2289",
       "sslPort": 44320
     }
   },
+  "$schema": "http://json.schemastore.org/launchsettings.json",
   "profiles": {
     "IIS Express": {
       "commandName": "IISExpress",
       "launchBrowser": true,
-      "launchUrl": "api/values",
+      "launchUrl": "swagger",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "EXTEND_TIME_HOURS": "12",
+        "MINIMUM_REFRESH_TOKEN_SIZE": "32",
+        "REFRESH_TOKEN_LIFITIME_DAYS": "7",
+        "JWT_ALGORITHM": "HS256",
+        "SMS_API_KEY": "83F6B882-FDA6-84DF-746D-EA872F9C8336",
+        "ISSUER": "MessengerSY",
+        "JWT_TOKEN_LIFETIME_MINUTES": "5",
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "AUDIENCE": "MessengerSY_Client"
       }
     },
     "MessengerSY": {
       "commandName": "Project",
       "launchBrowser": true,
       "launchUrl": "api/values",
-      "applicationUrl": "https://localhost:5001;http://localhost:5000",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
-      }
+      },
+      "applicationUrl": "https://localhost:5001;http://localhost:5000"
     }
   }
 }
