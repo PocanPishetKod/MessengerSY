@@ -25,6 +25,11 @@ namespace MessengerSY.Data.Mapping
                 .HasForeignKey(participant => participant.ChatId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            builder.HasOne(chat => chat.LastMessage)
+                .WithOne(message => message.ThisMessageLastInChat)
+                .HasForeignKey<Message>(message => message.ThisMessageLastInChatId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             base.Configure(builder);
         }
     }

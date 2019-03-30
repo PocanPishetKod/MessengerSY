@@ -8,11 +8,13 @@ namespace MessengerSY.Services.UserProfileService
 {
     public interface IUserProfileService
     {
+        IEnumerable<UserProfile> GetExistsUserProfiles(IEnumerable<string> phoneNumbers);
         Task<UserProfile> GetUserProfileById(int userProfileId);
         Task<UserProfile> GetUserProfileByPhone(string phoneNumber);
         Task<bool> IsUserProfileExists(string phoneNumber);
+        Task<bool> IsUserProfileExists(int userProfileId);
         Task<(UserProfile userProfile, RefreshToken refreshToken)> CreateUserProfile(string phoneNumber, string refreshToken);
-        Task CreateUserProfile(UserProfile userProfile);
+        Task AddUserProfile(UserProfile userProfile);
         
         Task<RefreshToken> GetRefreshTokenById(int refreshTokenId);
         IEnumerable<RefreshToken> GetUserProfileRefreshTokensNoTracking(int userProfileId);
@@ -24,5 +26,15 @@ namespace MessengerSY.Services.UserProfileService
         Task CreateRefreshToken(RefreshToken refreshToken);
         Task DeleteRefreshToken(RefreshToken refreshToken);
         Task DeleteRefreshTokens(IEnumerable<RefreshToken> refreshTokens);
+
+        Task<Contact> GetContact(int ownerUserProfileId, int linkedUserProfileId);
+        IEnumerable<Contact> GetLinkedUserProfileContacts(string linkedPhoneNumber, bool isTracking);
+        IEnumerable<Contact> GetLinkedUserProfileContacts(int ownerUserProfileId, bool isTracking);
+        IEnumerable<Contact> GetUserProfileContects(int userProfileId, bool IsTracking);
+        Task AddContact(Contact contact);
+        Task AddContacts(IEnumerable<Contact> contacts);
+        Task UpdateContacts(IEnumerable<Contact> contacts);
+        Task<bool> IsContactExists(int userProfileOwnerId, int linkedUserProfileId);
+        Task<bool> IsContactExists(int ownerUserProfileId, string phoneNumber);
     }
 }

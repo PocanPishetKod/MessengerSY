@@ -18,12 +18,12 @@ namespace MessengerSY.Middlewares
             _requestDelegate = requestDelegate;
         }
 
-        public async Task InvokeAsync(HttpContext httpContext, IRefreshTokenService refreshTokenService)
+        public async Task InvokeAsync(HttpContext httpContext, IJwtService jwtService)
         {
             if (httpContext?.User?.Identity.IsAuthenticated ?? false)
             {
                 var refreshTokenId = httpContext.User.GetRefreshTokenId();
-                var result = refreshTokenService.CheckBlockToken(refreshTokenId);
+                var result = jwtService.CheckBlockToken(refreshTokenId);
                 if (result)
                 {
                     httpContext.Response.StatusCode = StatusCodes.Status401Unauthorized;

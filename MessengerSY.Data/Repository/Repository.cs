@@ -53,6 +53,11 @@ namespace MessengerSY.Data.Repository
             _entities.Update(entity);
         }
 
+        public void UpdateRange(IEnumerable<TEntity> entities)
+        {
+            _entities.UpdateRange(entities);
+        }
+
         public void Remove(TEntity entity)
         {
             _entities.Remove(entity);

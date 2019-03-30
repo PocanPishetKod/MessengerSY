@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using MessengerSY.AppConfiguration;
 using MessengerSY.Core.JwtAuthOptions;
+using MessengerSY.Hubs;
 using MessengerSY.Middlewares;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
@@ -29,6 +30,9 @@ namespace MessengerSY
         
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddIISConfiguration();
+            services.AddRedisDbContext();
+            services.AddSignalRConfiguration();
             services.AddSwaggerConfiguration();
             services.AddDbContextConfiguration(Configuration);
             services.AddMemoryCache();
@@ -57,7 +61,12 @@ namespace MessengerSY
 
             app.UseHttpsRedirection();
             app.UseAuthentication();
+            app.UseMiddleware<SetNameIdentifier>();
             app.UseMiddleware<JwtBlockValidator>();
+            app.UseSignalR(routes =>
+            {
+                routes.MapHub<Main>("/hubs/main");
+            });
             app.UseMvc();
         }
     }

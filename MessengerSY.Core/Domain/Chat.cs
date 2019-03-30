@@ -9,7 +9,7 @@ namespace MessengerSY.Core.Domain
         /// <summary>
         /// Дата создания чата
         /// </summary>
-        public string CreationDate { get; set; }
+        public DateTime CreationDate { get; set; }
 
         /// <summary>
         /// Название чата. Доступно если чат является группой
@@ -25,6 +25,16 @@ namespace MessengerSY.Core.Domain
         /// Показывает является ли чат секретным
         /// </summary>
         public bool IsSecret { get; set; }
+
+        /// <summary>
+        /// Дата отправления последнего сообщения в чате
+        /// </summary>
+        public DateTime? LastMessageSendDate { get; set; }
+
+        /// <summary>
+        /// Последнее сообщение чата
+        /// </summary>
+        public virtual Message LastMessage { get; set; }
 
         /// <summary>
         /// Идентификатор создателя чата

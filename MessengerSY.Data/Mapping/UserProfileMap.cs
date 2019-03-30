@@ -17,13 +17,13 @@ namespace MessengerSY.Data.Mapping
             builder.Property(userProfile => userProfile.Nickname).HasMaxLength(30);
 
             builder.HasMany(userProfile => userProfile.Contacts)
-                .WithOne(contact => contact.FirstSide)
-                .HasForeignKey(contact => contact.FirstSideId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .WithOne(contact => contact.ContactOwner)
+                .HasForeignKey(contact => contact.ContactOwnerId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             builder.HasMany(userProfile => userProfile.AddedMe)
-                .WithOne(contact => contact.SecondSide)
-                .HasForeignKey(contact => contact.SecondSideId)
+                .WithOne(contact => contact.LinkedUserProfile)
+                .HasForeignKey(contact => contact.LinkedUserProfileId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasMany(userProfile => userProfile.Chats)

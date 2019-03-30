@@ -2,6 +2,8 @@
 using System.Collections;
 using System.Linq;
 using System.Threading.Tasks;
+using MessengerSY.Extensions;
+using MessengerSY.Hubs;
 using MessengerSY.Models.Account;
 using MessengerSY.Services.JwtService;
 using MessengerSY.Services.RefreshTokenService;
@@ -10,10 +12,12 @@ using MessengerSY.Services.UserProfileService;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace MessengerSY.Controllers
 {
+    [Produces("application/json")]
     [Route("api/[controller]")]
     [ApiController]
     public class AccountController : ControllerBase
@@ -34,100 +38,156 @@ namespace MessengerSY.Controllers
             _memoryCache = memoryCache;
         }
 
+        [HttpGet("testgetjwt")]
+        public string TestGetJwt()
+        {
+            string phonenumber = "+79951970169";
+            return _jwtService.GenerateToken(phonenumber, 5, 2);
+        }
+
         /// <summary>
-        /// Отправляет код на указанный номер
+        /// Отправляет код на переданный номер
         /// </summary>
         /// <param name="model">Номер телефона в формате +7**********</param>
         /// <response code="200">Запрос обработан успешно, код выслан</response>
         /// <response code="500">Невозможно отправить код по внутренним причинам</response>
         /// <response code="400">Входные данные не прошли валидацию</response>
         /// <response code="409">Пользователь с таким номеров уже зарегистрирован</response>
+        /// <response code="403">Пользователь аутентифицирован</response>
         [HttpPost("registration/getcode")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public async Task<IActionResult> Registration([FromBody]PhoneNumberModel model)
         {
-            if (!await _userProfileService.IsUserProfileExists(model.PhoneNumber))
+            if (!User?.Identity?.IsAuthenticated ?? false)
             {
-                var code = CodeGenerator.GenerateCode();
-                if (await _smsSenderService.SendCode(model.PhoneNumber, code))
+                if (!await _userProfileService.IsUserProfileExists(model.PhoneNumber))
                 {
-                    RememberSmsCode(model.PhoneNumber, code);
+                    var code = CodeGenerator.GenerateCode();
+                    if (await _smsSenderService.SendCode(model.PhoneNumber, code))
+                    {
+                        RememberSmsCode(model.PhoneNumber, code);
 
-                    return Ok();
+                        return Ok();
+                    }
+
+                    return StatusCode(StatusCodes.Status500InternalServerError);
                 }
 
-                return StatusCode(StatusCodes.Status500InternalServerError);
+                return Conflict();
             }
 
-            return Conflict();
+            return Forbid();
         }
 
+        /// <summary>
+        /// Регистрирует пользователя если правильно введет смс код.
+        /// Сервер помнит отправленный код в течение 1 минуты.
+        /// </summary>
+        /// <param name="model">Телефонный номер и код из смс</param>
+        /// <returns>При успешной регистрации возвращает сгенерированные jwt и refresh токены.</returns>
+        /// <response code="200">Пользователь успешно зарегистрирован</response>
+        /// <response code="409">Пользователь с таким номером уже зарегистрирован</response>
+        /// <response code="400">Входные данные не прошли валидацию или код не правильный</response>
+        /// <response code="408">Время ввода кода истекло</response>
+        /// <response code="403">Пользователь аутентифицирован</response>
         [HttpPost("registration/verifyphone")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status408RequestTimeout)]
         public async Task<IActionResult> Registration([FromBody]VerifyCodeModel model)
         {
-            if (!await _userProfileService.IsUserProfileExists(model.PhoneNumber))
+            if (!User?.Identity?.IsAuthenticated ?? false)
             {
-                var result = RecallSmsCode(model.PhoneNumber, out var code);
-                if (result)
+                if (!await _userProfileService.IsUserProfileExists(model.PhoneNumber))
                 {
-                    if (string.Equals(code, model.Code))
+                    var result = RecallSmsCode(model.PhoneNumber, out var code);
+                    if (result)
                     {
-                        ForgetSmsCode(model.PhoneNumber);
-
-                        var refreshToken = _refreshTokenService.GenerateRefreshToken();
-
-                        (var userProfile, var refreshTokenModel) =
-                            await _userProfileService.CreateUserProfile(model.PhoneNumber, refreshToken);
-
-                        var jwt = _jwtService.GenerateToken(userProfile.PhoneNumber, userProfile.Id, refreshTokenModel.Id);
-
-                        return Ok(new TokensModel()
+                        if (string.Equals(code, model.Code))
                         {
-                            Jwt = jwt,
-                            RefreshToken = new RefreshTokenModel()
+                            ForgetSmsCode(model.PhoneNumber);
+
+                            var refreshToken = _refreshTokenService.GenerateRefreshToken();
+
+                            (var userProfile, var refreshTokenModel) =
+                                await _userProfileService.CreateUserProfile(model.PhoneNumber, refreshToken);
+
+                            var jwt = _jwtService.GenerateToken(userProfile.PhoneNumber, userProfile.Id,
+                                refreshTokenModel.Id);
+
+                            return Ok(new TokensModel()
                             {
-                                RefreshToken = refreshTokenModel.Token,
-                                RefreshTokenId = refreshTokenModel.Id,
-                                UserProfileId = userProfile.Id
-                            }
-                        });
+                                Jwt = jwt,
+                                RefreshToken = new RefreshTokenModel()
+                                {
+                                    RefreshToken = refreshTokenModel.Token,
+                                    RefreshTokenId = refreshTokenModel.Id,
+                                    UserProfileId = userProfile.Id
+                                }
+                            });
+                        }
+
+                        return BadRequest(new {message = "Неверный код"});
                     }
+
+                    return StatusCode(StatusCodes.Status408RequestTimeout);
                 }
 
-                return BadRequest();
+                return Conflict();
             }
 
-            return Conflict();
+            return Forbid();
         }
 
+        /// <summary>
+        /// Отправляет код на переданный номер
+        /// </summary>
+        /// <param name="model">Номер телефона в формате +7**********</param>
+        /// <response code="200">Запрос обработан успешно, код выслан</response>
+        /// <response code="500">Невозможно отправить код по внутренним причинам</response>
+        /// <response code="400">Входные данные не прошли валидацию</response>
+        /// <response code="403">Пользовательеще не зарегистрирован или аутентифицирован</response>
         [HttpPost("auth/getcode")]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> Authentication([FromBody]PhoneNumberModel model)
         {
-            if (await _userProfileService.IsUserProfileExists(model.PhoneNumber))
+            if (!User?.Identity?.IsAuthenticated ?? false)
             {
-                var code = CodeGenerator.GenerateCode();
-                if (await _smsSenderService.SendCode(model.PhoneNumber, code))
+                if (await _userProfileService.IsUserProfileExists(model.PhoneNumber))
                 {
-                    RememberSmsCode(model.PhoneNumber, code);
+                    var code = CodeGenerator.GenerateCode();
+                    if (await _smsSenderService.SendCode(model.PhoneNumber, code))
+                    {
+                        RememberSmsCode(model.PhoneNumber, code);
 
-                    return Ok();
+                        return Ok();
+                    }
+
+                    return StatusCode(StatusCodes.Status500InternalServerError);
                 }
-
-                return StatusCode(StatusCodes.Status500InternalServerError);
             }
 
             return Forbid();
         }
 
+        /// <summary>
+        /// Аутентифицирует пользователя если правильно введет смс код.
+        /// Сервер помнит отправленный код в течение 1 минуты.
+        /// </summary>
+        /// <param name="model">Телефонный номер и код из смс</param>
+        /// <returns>При успешной регистрации возвращает сгенерированные jwt и refresh токены.</returns>
+        /// <response code="200">Пользователь успешно аутентифицирован</response>
+        /// <response code="409">Пользователь с таким номером еще не зарегистрирован</response>
+        /// <response code="400">Входные данные не прошли валидацию или код не правильный</response>
+        /// <response code="408">Время ввода кода истекло</response>
+        /// <response code="403">Пользовательеще не зарегистрирован или аутентифицирован</response>
         [HttpPost("auth/verifyphone")]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -135,41 +195,56 @@ namespace MessengerSY.Controllers
         [ProducesResponseType(StatusCodes.Status408RequestTimeout)]
         public async Task<IActionResult> Authentication([FromBody]VerifyCodeModel model)
         {
-            var userProfile = await _userProfileService.GetUserProfileByPhone(model.PhoneNumber);
-            if (userProfile != null)
+            if (!User?.Identity?.IsAuthenticated ?? false)
             {
-                var result = RecallSmsCode(model.PhoneNumber, out var code);
-                if (result)
+                var userProfile = await _userProfileService.GetUserProfileByPhone(model.PhoneNumber);
+                if (userProfile != null)
                 {
-                    if (string.Equals(code, model.Code))
+                    var result = RecallSmsCode(model.PhoneNumber, out var code);
+                    if (result)
                     {
-                        ForgetSmsCode(model.PhoneNumber);
-
-                        var refreshToken = _refreshTokenService.GenerateRefreshToken();
-                        var refreshTokenModel = await _userProfileService.CreateRefreshToken(refreshToken, userProfile.Id);
-                        var jwt = _jwtService.GenerateToken(model.PhoneNumber, userProfile.Id, refreshTokenModel.Id);
-
-                        return base.Ok(new TokensModel()
+                        if (string.Equals(code, model.Code))
                         {
-                            Jwt = jwt,
-                            RefreshToken = new RefreshTokenModel()
+                            ForgetSmsCode(model.PhoneNumber);
+
+                            var refreshToken = _refreshTokenService.GenerateRefreshToken();
+                            var refreshTokenModel =
+                                await _userProfileService.CreateRefreshToken(refreshToken, userProfile.Id);
+                            var jwt = _jwtService.GenerateToken(model.PhoneNumber, userProfile.Id,
+                                refreshTokenModel.Id);
+
+                            return base.Ok(new TokensModel()
                             {
-                                RefreshToken = refreshTokenModel.Token,
-                                RefreshTokenId = refreshTokenModel.Id,
-                                UserProfileId = userProfile.Id
-                            }
-                        });
+                                Jwt = jwt,
+                                RefreshToken = new RefreshTokenModel()
+                                {
+                                    RefreshToken = refreshTokenModel.Token,
+                                    RefreshTokenId = refreshTokenModel.Id,
+                                    UserProfileId = userProfile.Id
+                                }
+                            });
+                        }
+
+                        return BadRequest();
                     }
 
-                    return BadRequest();
+                    return StatusCode(StatusCodes.Status408RequestTimeout);
                 }
-
-                return StatusCode(StatusCodes.Status408RequestTimeout);
             }
 
             return Forbid();
         }
 
+        /// <summary>
+        /// Выдает новый jwt при истечении времени жизни старого jwt и продливает жизнь refresh токену.
+        /// Если время жизни refresh токена истекло, то нужно пройти этап аутентификации.
+        /// </summary>
+        /// <param name="model">Refresh токен</param>
+        /// <returns>Новый jwt</returns>
+        /// <response code="200">Refresh токен прошел валдацию и сгенерирован новый jwt</response>
+        /// <response code="400">Refresh токен не прошел начальную валидацию</response>
+        /// <response code="403">Пользователя не существует, у пользователся нет refresh токенов, refresh токен не соответствует пользователю или срок действия токена не закончился</response>
+        /// <response code="409">Время жизни refresh токена истекло. Нужно пройти этап аутентификации</response>
         [HttpPost("refreshToken")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -177,32 +252,35 @@ namespace MessengerSY.Controllers
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         public async Task<IActionResult> RefreshToken([FromBody]RefreshTokenModel model)
         {
-            var userProfile = await _userProfileService.GetUserProfileById(model.UserProfileId);
-            if (userProfile != null)
+            if (!User?.Identity?.IsAuthenticated ?? false)
             {
-                var userProfileRefreshToken = await _userProfileService.GetRefreshTokenById(model.RefreshTokenId);
-                if (userProfileRefreshToken != null)
+                var userProfile = await _userProfileService.GetUserProfileById(model.UserProfileId);
+                if (userProfile != null)
                 {
-                    if (userProfile.Id == userProfileRefreshToken.UserProfileId)
+                    var userProfileRefreshToken = await _userProfileService.GetRefreshTokenById(model.RefreshTokenId);
+                    if (userProfileRefreshToken != null)
                     {
-                        if (_userProfileService.CheckRefreshTokenExpirationDate(userProfileRefreshToken))
+                        if (userProfile.Id == userProfileRefreshToken.UserProfileId)
                         {
-                            if (_refreshTokenService.CompareTokens(model.RefreshToken,
-                                userProfileRefreshToken.Token))
+                            if (_userProfileService.CheckRefreshTokenExpirationDate(userProfileRefreshToken))
                             {
-                                await _userProfileService.ExtendRefreshToken(userProfileRefreshToken);
-                                var newJwt = _jwtService.GenerateToken(userProfile.PhoneNumber, userProfile.Id,
-                                    userProfileRefreshToken.Id);
-
-                                return Ok(new JwtModel()
+                                if (_refreshTokenService.CompareTokens(model.RefreshToken,
+                                    userProfileRefreshToken.Token))
                                 {
-                                    Jwt = newJwt
-                                });
+                                    await _userProfileService.ExtendRefreshToken(userProfileRefreshToken);
+                                    var newJwt = _jwtService.GenerateToken(userProfile.PhoneNumber, userProfile.Id,
+                                        userProfileRefreshToken.Id);
+
+                                    return Ok(new JwtModel()
+                                    {
+                                        Jwt = newJwt
+                                    });
+                                }
                             }
-                        }
-                        else
-                        {
-                            return Conflict();
+                            else
+                            {
+                                return Conflict();
+                            }
                         }
                     }
                 }
@@ -211,6 +289,14 @@ namespace MessengerSY.Controllers
             return Forbid();
         }
 
+        /// <summary>
+        /// Деактивирует jwt, связанный с refresh токеном
+        /// </summary>
+        /// <param name="model">Refresh токен</param>
+        /// <returns>Новый jwt</returns>
+        /// <response code="200">Refresh токен прошел валдацию и jwt успешно деактивирован</response>
+        /// <response code="400">Refresh токен не прошел начальную валидацию</response>
+        /// <response code="403">Пользователя не существует, у пользователся нет refresh токенов или refresh токен не соответствует пользователю</response>
         [Authorize]
         [HttpPost("signout")]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -218,17 +304,16 @@ namespace MessengerSY.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public async Task<IActionResult> Signout([FromBody]RefreshTokenModel model)
         {
-            var userProfile = await _userProfileService.GetUserProfileById(model.UserProfileId);
-            if (userProfile != null)
+            if (User.GetUserProfileId() == model.UserProfileId  && User.GetRefreshTokenId() == model.RefreshTokenId)
             {
                 var userProfileRefreshToken = await _userProfileService.GetRefreshTokenById(model.RefreshTokenId);
                 if (userProfileRefreshToken != null)
                 {
-                    if (userProfile.Id == userProfileRefreshToken.UserProfileId)
+                    if (User.GetUserProfileId() == userProfileRefreshToken.UserProfileId)
                     {
                         if (_refreshTokenService.CompareTokens(model.RefreshToken, userProfileRefreshToken.Token))
                         {
-                            _refreshTokenService.BlockToken(userProfileRefreshToken.Id);
+                            _jwtService.BlockToken(userProfileRefreshToken.Id);
                             await _userProfileService.DeleteRefreshToken(userProfileRefreshToken);
 
                             return Ok();
@@ -240,6 +325,14 @@ namespace MessengerSY.Controllers
             return Forbid();
         }
 
+        /// <summary>
+        /// Деактивирует все jwt пользователя и удаляет все refresh токены пользователя
+        /// </summary>
+        /// <param name="model">Refresh токен</param>
+        /// <returns>Новый jwt</returns>
+        /// <response code="200">Refresh токен прошел валдацию, все jwt деактивированы, все refresh токены удалены</response>
+        /// <response code="400">Refresh токен не прошел начальную валидацию</response>
+        /// <response code="403">Пользователя не существует, у пользователся нет refresh токенов или refresh токен не соответствует пользователю</response>
         [Authorize]
         [HttpPost("allsignout")]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -247,23 +340,22 @@ namespace MessengerSY.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public async Task<IActionResult> SignoutFromAllDevices([FromBody]RefreshTokenModel model)
         {
-            var userProfile = await _userProfileService.GetUserProfileById(model.UserProfileId);
-            if (userProfile != null)
+            if (User.GetUserProfileId() == model.UserProfileId && User.GetRefreshTokenId() == model.RefreshTokenId)
             {
                 var userProfileRefreshToken = await _userProfileService.GetRefreshTokenById(model.RefreshTokenId);
                 if (userProfileRefreshToken != null)
                 {
-                    if (userProfile.Id == userProfileRefreshToken.UserProfileId)
+                    if (User.GetUserProfileId() == userProfileRefreshToken.UserProfileId)
                     {
                         if (_refreshTokenService.CompareTokens(model.RefreshToken, userProfileRefreshToken.Token))
                         {
                             var userProfileRefreshTokens =
-                                _userProfileService.GetUserProfileRefreshTokens(userProfile.Id);
+                                _userProfileService.GetUserProfileRefreshTokens(User.GetUserProfileId());
                             var refreshTokenIds = userProfileRefreshTokens.Select(refreshToken => refreshToken.Id)
                                 .ToArray();
 
                             await _userProfileService.DeleteRefreshTokens(userProfileRefreshTokens);
-                            _refreshTokenService.BlockTokens(refreshTokenIds);
+                            _jwtService.BlockTokens(refreshTokenIds);
 
                             return Ok();
                         }
@@ -279,6 +371,25 @@ namespace MessengerSY.Controllers
         public string IsAuthorize()
         {
             return DateTime.Now.ToLongTimeString();
+        }
+
+        [HttpGet("date")]
+        public async Task<string> Date()
+        {
+            try
+            {
+                var userProfile = await _userProfileService.GetUserProfileById(5);
+                if (userProfile != null)
+                {
+                    return userProfile.RegistrationDate.Millisecond.ToString();
+                }
+
+                return "Hello, World, from reg.ru!";
+            }
+            catch (Exception ex)
+            {
+                return ex.Message;
+            }
         }
 
         private void RememberSmsCode(string phoneNumber, string code)

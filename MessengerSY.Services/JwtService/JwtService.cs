@@ -1,5 +1,6 @@
 ﻿using MessengerSY.Core;
 using MessengerSY.Core.JwtAuthOptions;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
@@ -14,10 +15,14 @@ namespace MessengerSY.Services.JwtService
     public class JwtTokenService : IJwtService
     {
         private readonly IJwtInfo _jwtInfo;
+        private readonly IMemoryCache _memoryCache;
 
-        public JwtTokenService(IJwtInfo jwtInfo)
+        private readonly string _blockTokenKeyPrefix = "blocktoken";
+
+        public JwtTokenService(IJwtInfo jwtInfo, IMemoryCache memoryCache)
         {
             _jwtInfo = jwtInfo;
+            _memoryCache = memoryCache;
         }
 
         public string GenerateToken(string phoneNumber, int userProfileId, int refreshTokenId)
@@ -45,6 +50,38 @@ namespace MessengerSY.Services.JwtService
                 );
             
             return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        public void BlockToken(int refreshTokenId)
+        {
+            if (refreshTokenId <= 0)
+                throw new ArgumentException(nameof(refreshTokenId));
+
+            _memoryCache.Set(BuildValue(refreshTokenId), 1, TimeSpan.FromMinutes(_jwtInfo.JwtTokenLifeTimeMinutes));
+        }
+
+        public void BlockTokens(IEnumerable<int> refreshTokenIds)
+        {
+            if (refreshTokenIds == null)
+                throw new ArgumentNullException(nameof(refreshTokenIds));
+
+            foreach (var refreshTokenId in refreshTokenIds)
+            {
+                BlockToken(refreshTokenId);
+            }
+        }
+
+        public bool CheckBlockToken(int refreshTokenId)
+        {
+            if (refreshTokenId <= 0)
+                throw new ArgumentException(nameof(refreshTokenId));
+
+            return _memoryCache.TryGetValue(BuildValue(refreshTokenId), out var value);
+        }
+
+        private string BuildValue(int refreshTokenId)
+        {
+            return _blockTokenKeyPrefix + refreshTokenId.ToString();
         }
     }
 }

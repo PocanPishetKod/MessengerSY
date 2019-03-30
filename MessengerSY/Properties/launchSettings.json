@@ -20,7 +20,7 @@
         "JWT_ALGORITHM": "HS256",
         "SMS_API_KEY": "83F6B882-FDA6-84DF-746D-EA872F9C8336",
         "ISSUER": "MessengerSY",
-        "JWT_TOKEN_LIFETIME_MINUTES": "5",
+        "JWT_TOKEN_LIFETIME_MINUTES": "60",
         "ASPNETCORE_ENVIRONMENT": "Development",
         "AUDIENCE": "MessengerSY_Client"
       }

@@ -13,7 +13,11 @@ namespace MessengerSY.AppConfiguration
     {
         public static IServiceCollection AddDbContextConfiguration(this IServiceCollection services, IConfiguration configuration)
         {
-            services.AddDbContext<MessengerDbContext>();
+            services.AddDbContext<MessengerDbContext>(options =>
+                {
+                    options.UseSqlServer(configuration.GetConnectionString("MessengerConnection"));
+                    options.UseLazyLoadingProxies();
+                });
 
             return services;
         }

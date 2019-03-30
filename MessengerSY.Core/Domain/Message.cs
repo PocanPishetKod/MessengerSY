@@ -35,5 +35,14 @@ namespace MessengerSY.Core.Domain
         /// Чат, к которому привязано сообщение
         /// </summary>
         public virtual Chat Chat { get; set; }
+
+        /// <summary>
+        /// Идентфикатор чата, в котором это сообщение последнее
+        /// </summary>
+        public int? ThisMessageLastInChatId { get; set; }
+        /// <summary>
+        /// Чат, в котором это сообщение последнее
+        /// </summary>
+        public virtual Chat ThisMessageLastInChat { get; set; }
     }
 }

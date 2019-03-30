@@ -13,6 +13,9 @@ namespace MessengerSY.Data.Mapping
         {
             builder.ToTable(nameof(Contact));
 
+            builder.Property(prop => prop.ContactName).HasMaxLength(50);
+
+
             base.Configure(builder);
         }
     }

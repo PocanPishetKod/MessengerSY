@@ -3,7 +3,9 @@ using MessengerSY.Core.JwtAuthOptions;
 using MessengerSY.Core.RefreshTokenOptions;
 using MessengerSY.Core.SmsProvider;
 using MessengerSY.Data.Repository;
+using MessengerSY.Services.ChatService;
 using MessengerSY.Services.JwtService;
+using MessengerSY.Services.OnlineStatusService;
 using MessengerSY.Services.RefreshTokenService;
 using MessengerSY.Services.SmsService;
 using MessengerSY.Services.UserProfileService;
@@ -39,6 +41,8 @@ namespace MessengerSY.AppConfiguration
             services.AddTransient<IRefreshTokenService, RefreshTokenService>();
             services.AddTransient<ISmsSenderService, SmsSenderService>();
             services.AddTransient<IUserProfileService, UserProfileService>();
+            services.AddTransient<IOnlineStatusService, OnlineStatusService>();
+            services.AddTransient<IChatService, ChatService>();
 
             return services;
         }

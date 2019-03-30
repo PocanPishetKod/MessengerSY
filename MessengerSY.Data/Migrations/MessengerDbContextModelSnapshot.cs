@@ -25,13 +25,15 @@ namespace MessengerSY.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
 
-                    b.Property<string>("CreationDate");
+                    b.Property<DateTime>("CreationDate");
 
                     b.Property<int>("CreatorId");
 
                     b.Property<bool>("IsGroup");
 
                     b.Property<bool>("IsSecret");
+
+                    b.Property<DateTime?>("LastMessageSendDate");
 
                     b.Property<string>("Title")
                         .HasMaxLength(50);
@@ -49,15 +51,20 @@ namespace MessengerSY.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
 
-                    b.Property<int>("FirstSideId");
+                    b.Property<string>("ContactName")
+                        .HasMaxLength(50);
 
-                    b.Property<int>("SecondSideId");
+                    b.Property<int>("ContactOwnerId");
+
+                    b.Property<int?>("LinkedUserProfileId");
+
+                    b.Property<string>("PhoneNumber");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("FirstSideId");
+                    b.HasIndex("ContactOwnerId");
 
-                    b.HasIndex("SecondSideId");
+                    b.HasIndex("LinkedUserProfileId");
 
                     b.ToTable("Contact");
                 });
@@ -78,11 +85,17 @@ namespace MessengerSY.Data.Migrations
 
                     b.Property<int>("SenderId");
 
+                    b.Property<int?>("ThisMessageLastInChatId");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ChatId");
 
                     b.HasIndex("SenderId");
+
+                    b.HasIndex("ThisMessageLastInChatId")
+                        .IsUnique()
+                        .HasFilter("[ThisMessageLastInChatId] IS NOT NULL");
 
                     b.ToTable("Message");
                 });
@@ -157,14 +170,14 @@ namespace MessengerSY.Data.Migrations
 
             modelBuilder.Entity("MessengerSY.Core.Domain.Contact", b =>
                 {
-                    b.HasOne("MessengerSY.Core.Domain.UserProfile", "FirstSide")
+                    b.HasOne("MessengerSY.Core.Domain.UserProfile", "ContactOwner")
                         .WithMany("Contacts")
-                        .HasForeignKey("FirstSideId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .HasForeignKey("ContactOwnerId")
+                        .OnDelete(DeleteBehavior.Cascade);
 
-                    b.HasOne("MessengerSY.Core.Domain.UserProfile", "SecondSide")
+                    b.HasOne("MessengerSY.Core.Domain.UserProfile", "LinkedUserProfile")
                         .WithMany("AddedMe")
-                        .HasForeignKey("SecondSideId")
+                        .HasForeignKey("LinkedUserProfileId")
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 
@@ -178,6 +191,11 @@ namespace MessengerSY.Data.Migrations
                     b.HasOne("MessengerSY.Core.Domain.UserProfile", "Sender")
                         .WithMany("SendMessages")
                         .HasForeignKey("SenderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MessengerSY.Core.Domain.Chat", "ThisMessageLastInChat")
+                        .WithOne("LastMessage")
+                        .HasForeignKey("MessengerSY.Core.Domain.Message", "ThisMessageLastInChatId")
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 
