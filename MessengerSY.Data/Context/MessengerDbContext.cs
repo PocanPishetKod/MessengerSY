@@ -11,13 +11,6 @@ namespace MessengerSY.Data.Context
 {
     public class MessengerDbContext : DbContext
     {
-        private readonly string connectLocal =
-            "Server=(localdb)\\mssqllocaldb;Database=messengerSY;Trusted_Connection=True;";
-
-        private readonly string connectHosting = "Data Source=localhost;Database=u0685177_messengerSY;Integrated Security=False;User ID=u0685177_messengerSY;Password=Vfhcbr";
-
-        private readonly string _connectionString;
-
         public DbSet<UserProfile> UserProfiles { get; set; }
         public DbSet<UserProfileChat> UserProfileChats { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }

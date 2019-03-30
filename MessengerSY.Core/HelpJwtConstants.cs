@@ -9,5 +9,6 @@ namespace MessengerSY.Core
         public const string ID = "id";
         public const string PHONE_NUMBER = "phnum";
         public const string REFRESH_TOKEN_ID = "refrtid";
+        public const string NICKNAME = "nick";
     }
 }

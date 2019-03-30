@@ -66,6 +66,7 @@ namespace MessengerSY
             app.UseSignalR(routes =>
             {
                 routes.MapHub<Main>("/hubs/main");
+                routes.MapHub<Notification>("/hubs/notification");
             });
             app.UseMvc();
         }

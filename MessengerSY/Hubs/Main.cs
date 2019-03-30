@@ -55,7 +55,6 @@ namespace MessengerSY.Hubs
                     {
                         ChatId = chat.Id,
                         SenderId = Context.User.GetUserProfileId(),
-                        ThisMessageLastInChatId = chat.Id,
                         SendDate = DateTime.Now,
                         MessageText = messageText
                     };
@@ -63,9 +62,11 @@ namespace MessengerSY.Hubs
                     await _chatSrevice.AddMessage(message);
 
                     chat.LastMessageSendDate = message.SendDate;
+                    chat.LastMessage = message;
                     await _chatSrevice.UpdateChat(chat);
 
                     var participantIds = _chatSrevice.GetChatParticipantIds(chat.Id);
+                    participantIds = participantIds.Except(new int[] { Context.User.GetUserProfileId() });
 
                     var onlineUserProfileIds = new List<string>();
                     var offlineUserProfileIds = new List<string>();
@@ -89,10 +90,12 @@ namespace MessengerSY.Hubs
                         Sender = new UserProfileModel()
                         {
                             UserProfileId = Context.User.GetUserProfileId(),
-                            PhoneNumber = Context.User.GetUserProfilePhone()
+                            PhoneNumber = Context.User.GetUserProfilePhone(),
+                            Nickname = Context.User.GetUserProfileNickname()
                         }
                     };
 
+                    await Clients.Caller.ReceiveMessage(messageModel);
                     await Clients.Users(onlineUserProfileIds).ReceiveMessage(messageModel);
                     await _notificationHub.Clients.Users(offlineUserProfileIds).SendAsync("ReceiveMessage", messageModel);
                 }
@@ -103,9 +106,10 @@ namespace MessengerSY.Hubs
         {
             if (participantId > 0 && !string.IsNullOrWhiteSpace(messageText))
             {
-                if (await _userProfileService.IsUserProfileExists(participantId))
+                var participant = await _userProfileService.GetUserProfileById(participantId);
+                if (participant != null)
                 {
-                    if (!_chatSrevice.IsChatNoGroupExists(participantId, Context.User.GetUserProfileId()))
+                    if (!_chatSrevice.IsChatNoGroupExists(participant.Id, Context.User.GetUserProfileId()))
                     {
                         var newChat = new Chat()
                         {
@@ -129,10 +133,52 @@ namespace MessengerSY.Hubs
                         });
                         newChat.Participants.Add(new UserProfileChat()
                         {
-                            UserProfileId = participantId
+                            UserProfileId = participant.Id
                         });
 
                         await _chatSrevice.AddChat(newChat);
+
+                        var receiveChat = new ReceiveChatModel()
+                        {
+                            ChatId = newChat.Id,
+                            Message = new MessageModel()
+                            {
+                                MessageId = message.Id,
+                                SendDate = message.SendDate,
+                                TextContent = message.MessageText,
+                                Sender = new UserProfileModel()
+                                {
+                                    UserProfileId = Context.User.GetUserProfileId(),
+                                    PhoneNumber = Context.User.GetUserProfilePhone(),
+                                    Nickname = Context.User.GetUserProfileNickname()
+                                }
+                            },
+                            Participants = new List<UserProfileModel>()
+                            {
+                                new UserProfileModel()
+                                {
+                                    UserProfileId = Context.User.GetUserProfileId(),
+                                    PhoneNumber = Context.User.GetUserProfilePhone()
+                                },
+                                new UserProfileModel()
+                                {
+                                    UserProfileId = participant.Id,
+                                    Nickname = participant.Nickname,
+                                    PhoneNumber = participant.PhoneNumber
+                                }
+                            }
+                        };
+
+                        await Clients.Caller.ReceiveChat(receiveChat);
+
+                        if (await _onlineStatusService.IsOnline(participant.Id))
+                        {
+                            await Clients.User(participant.Id.ToString()).ReceiveChat(receiveChat);
+                        }
+                        else
+                        {
+                            await _notificationHub.Clients.User(participant.Id.ToString()).SendAsync("ReceiveChat", receiveChat);
+                        }
                     }
                 }
             }

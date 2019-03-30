@@ -25,7 +25,7 @@ namespace MessengerSY.Services.JwtService
             _memoryCache = memoryCache;
         }
 
-        public string GenerateToken(string phoneNumber, int userProfileId, int refreshTokenId)
+        public string GenerateToken(string phoneNumber, int userProfileId, string nickname, int refreshTokenId)
         {
             if (string.IsNullOrWhiteSpace(phoneNumber))
                 throw new ArgumentNullException(nameof(phoneNumber));
@@ -43,7 +43,8 @@ namespace MessengerSY.Services.JwtService
                 {
                     new Claim(HelpJwtConstants.PHONE_NUMBER, phoneNumber),
                     new Claim(HelpJwtConstants.ID, userProfileId.ToString()),
-                    new Claim(HelpJwtConstants.REFRESH_TOKEN_ID, refreshTokenId.ToString())
+                    new Claim(HelpJwtConstants.REFRESH_TOKEN_ID, refreshTokenId.ToString()),
+                    new Claim(HelpJwtConstants.NICKNAME, nickname)
                 },
                 signingCredentials: new SigningCredentials(_jwtInfo.SymmetricSecurityKey, _jwtInfo.SigningAlgorithm),
                 expires: DateTime.Now.AddMinutes(_jwtInfo.JwtTokenLifeTimeMinutes)

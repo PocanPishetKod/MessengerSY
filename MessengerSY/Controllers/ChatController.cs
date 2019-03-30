@@ -26,12 +26,6 @@ namespace MessengerSY.Controllers
             _onlineStatusService = onlineStatusService;
         }
 
-        [HttpGet("a")]
-        public string a()
-        {
-            return "asd";
-        }
-
         [HttpGet("getchats")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public IActionResult GetUserProfileChats()

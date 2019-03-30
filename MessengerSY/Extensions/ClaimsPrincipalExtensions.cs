@@ -41,5 +41,16 @@ namespace MessengerSY.Extensions
 
             return string.Empty;
         }
+
+        public static string GetUserProfileNickname(this ClaimsPrincipal user)
+        {
+            var claim = user.Claims.FirstOrDefault(c => c.Type == HelpJwtConstants.NICKNAME);
+            if (claim != null)
+            {
+                return claim.Value;
+            }
+
+            return string.Empty;
+        }
     }
 }

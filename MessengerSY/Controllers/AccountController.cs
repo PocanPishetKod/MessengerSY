@@ -38,11 +38,25 @@ namespace MessengerSY.Controllers
             _memoryCache = memoryCache;
         }
 
-        [HttpGet("testgetjwt")]
+        [HttpGet("testgetjwtmy")]
         public string TestGetJwt()
         {
             string phonenumber = "+79951970169";
-            return _jwtService.GenerateToken(phonenumber, 5, 2);
+            return _jwtService.GenerateToken(phonenumber, 5, "", 2);
+        }
+
+        [HttpGet("testgetjwtmom")]
+        public string TestGetJwMomt()
+        {
+            string phonenumber = "+79284234038";
+            return _jwtService.GenerateToken(phonenumber, 8, "", 2);
+        }
+
+        [HttpGet("testgetjwtpap")]
+        public string TestGetJwtPap()
+        {
+            string phonenumber = "+79284234037";
+            return _jwtService.GenerateToken(phonenumber, 9, "", 2);
         }
 
         /// <summary>
@@ -117,7 +131,7 @@ namespace MessengerSY.Controllers
                             (var userProfile, var refreshTokenModel) =
                                 await _userProfileService.CreateUserProfile(model.PhoneNumber, refreshToken);
 
-                            var jwt = _jwtService.GenerateToken(userProfile.PhoneNumber, userProfile.Id,
+                            var jwt = _jwtService.GenerateToken(userProfile.PhoneNumber, userProfile.Id, userProfile.Nickname,
                                 refreshTokenModel.Id);
 
                             return Ok(new TokensModel()
@@ -210,7 +224,7 @@ namespace MessengerSY.Controllers
                             var refreshToken = _refreshTokenService.GenerateRefreshToken();
                             var refreshTokenModel =
                                 await _userProfileService.CreateRefreshToken(refreshToken, userProfile.Id);
-                            var jwt = _jwtService.GenerateToken(model.PhoneNumber, userProfile.Id,
+                            var jwt = _jwtService.GenerateToken(model.PhoneNumber, userProfile.Id, userProfile.Nickname,
                                 refreshTokenModel.Id);
 
                             return base.Ok(new TokensModel()
@@ -268,7 +282,7 @@ namespace MessengerSY.Controllers
                                     userProfileRefreshToken.Token))
                                 {
                                     await _userProfileService.ExtendRefreshToken(userProfileRefreshToken);
-                                    var newJwt = _jwtService.GenerateToken(userProfile.PhoneNumber, userProfile.Id,
+                                    var newJwt = _jwtService.GenerateToken(userProfile.PhoneNumber, userProfile.Id, userProfile.Nickname,
                                         userProfileRefreshToken.Id);
 
                                     return Ok(new JwtModel()
@@ -364,32 +378,6 @@ namespace MessengerSY.Controllers
             }
 
             return Forbid();
-        }
-
-        [Authorize]
-        [HttpGet("isauth")]
-        public string IsAuthorize()
-        {
-            return DateTime.Now.ToLongTimeString();
-        }
-
-        [HttpGet("date")]
-        public async Task<string> Date()
-        {
-            try
-            {
-                var userProfile = await _userProfileService.GetUserProfileById(5);
-                if (userProfile != null)
-                {
-                    return userProfile.RegistrationDate.Millisecond.ToString();
-                }
-
-                return "Hello, World, from reg.ru!";
-            }
-            catch (Exception ex)
-            {
-                return ex.Message;
-            }
         }
 
         private void RememberSmsCode(string phoneNumber, string code)
