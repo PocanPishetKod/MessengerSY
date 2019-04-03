@@ -53,6 +53,7 @@ namespace MessengerSY
                 app.UseHsts();
             }
 
+            app.UseStaticFiles();
             app.UseSwagger();
             app.UseSwaggerUI(options =>
             {

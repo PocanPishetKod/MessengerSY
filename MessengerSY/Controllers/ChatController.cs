@@ -18,19 +18,17 @@ namespace MessengerSY.Controllers
     public class ChatController : ControllerBase
     {
         private readonly IChatService _chatSrevice;
-        private readonly IOnlineStatusService _onlineStatusService;
 
-        public ChatController(IChatService chatSrevice, IOnlineStatusService onlineStatusService)
+        public ChatController(IChatService chatSrevice)
         {
             _chatSrevice = chatSrevice;
-            _onlineStatusService = onlineStatusService;
         }
 
         [HttpGet("getchats")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public IActionResult GetUserProfileChats()
         {
-            var chats = _chatSrevice.GetAllUserProfileChats(User.GetUserProfileId());
+            var chats = _chatSrevice.GetAllUserProfileChats(User.GetUserProfileId(), true);
 
             var chatList = new List<ChatModel>(chats.Count());
             foreach (var chat in chats)
@@ -63,6 +61,8 @@ namespace MessengerSY.Controllers
                     Nickname = sender.Nickname,
                     PhoneNumber = sender.PhoneNumber
                 };
+
+                chatList.Add(chatModel);
             }
 
             return Ok(new ChatListModel()
@@ -71,30 +71,33 @@ namespace MessengerSY.Controllers
             });
         }
 
-        [HttpGet("getchatmessages/{chatid}/{count}/{startDate}")]
+        [HttpGet("getchatmessages")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [Produces("application/json")]
         public async Task<IActionResult> GetChatMessages(int chatId, int count, DateTime? startDate)
         {
             if (await _chatSrevice.IsParticipant(chatId, User.GetUserProfileId()))
             {
-                var messages = _chatSrevice.GetChatMessages(chatId, startDate, count);
+                var messages = _chatSrevice.GetChatMessages(chatId, startDate, count, true);
+                var viewModels = messages.Select(message => new MessageModel()
+                {
+
+                    MessageId = message.Id,
+                    ChatId = message.ChatId,
+                    SendDate = message.SendDate,
+                    TextContent = message.MessageText,
+                    Sender = new UserProfileModel()
+                    {
+                        UserProfileId = message.SenderId,
+                        Nickname = message.Sender.Nickname,
+                        PhoneNumber = message.Sender.PhoneNumber
+                    }
+                });
 
                 return Ok(new MessageListModel()
                 {
-                    Messages = messages.Select(message => new MessageModel()
-                    {
-
-                        MessageId = message.Id,
-                        SendDate = message.SendDate,
-                        TextContent = message.MessageText,
-                        Sender = new UserProfileModel()
-                        {
-                            UserProfileId = message.SenderId,
-                            Nickname = message.Sender.Nickname,
-                            PhoneNumber = message.Sender.PhoneNumber
-                        }
-                    })
+                    Messages = viewModels
                 });
             }
 

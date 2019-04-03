@@ -44,9 +44,9 @@ namespace MessengerSY.Hubs
             await base.OnDisconnectedAsync(exception);
         }
 
-        public async Task SendMessage(int chatId, string messageText)
+        public async Task SendMessage(int chatId, string messageText, int messageGUID)
         {
-            if (chatId > 0 && !string.IsNullOrWhiteSpace(messageText))
+            if (chatId > 0 && !string.IsNullOrWhiteSpace(messageText) && messageGUID > 0)
             {
                 var chat = await _chatSrevice.GetChatById(chatId);
                 if (chat != null && await _chatSrevice.IsParticipant(chatId, Context.User.GetUserProfileId()))
@@ -85,6 +85,7 @@ namespace MessengerSY.Hubs
                     var messageModel = new MessageModel()
                     {
                         MessageId = message.Id,
+                        ChatId = chat.Id,
                         SendDate = message.SendDate,
                         TextContent = message.MessageText,
                         Sender = new UserProfileModel()
@@ -95,7 +96,7 @@ namespace MessengerSY.Hubs
                         }
                     };
 
-                    await Clients.Caller.ReceiveMessage(messageModel);
+                    await Clients.Caller.ReceiveYourMessage(messageModel, messageGUID);
                     await Clients.Users(onlineUserProfileIds).ReceiveMessage(messageModel);
                     await _notificationHub.Clients.Users(offlineUserProfileIds).SendAsync("ReceiveMessage", messageModel);
                 }
@@ -144,6 +145,7 @@ namespace MessengerSY.Hubs
                             Message = new MessageModel()
                             {
                                 MessageId = message.Id,
+                                ChatId = newChat.Id,
                                 SendDate = message.SendDate,
                                 TextContent = message.MessageText,
                                 Sender = new UserProfileModel()

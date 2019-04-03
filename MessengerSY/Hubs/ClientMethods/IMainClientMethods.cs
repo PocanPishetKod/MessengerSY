@@ -9,6 +9,7 @@ namespace MessengerSY.Hubs.ClientMethods
     public interface IMainClientMethods
     {
         Task ReceiveMessage(MessageModel message);
+        Task ReceiveYourMessage(MessageModel message, int messageGUID);
         Task ReceiveChat(ReceiveChatModel chat);
     }
 }

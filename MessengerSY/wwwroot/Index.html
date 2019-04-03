@@ -1,0 +1,76 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>MessengerSY</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link rel="stylesheet" href="css/site.css" />
+</head>
+<body class="bg-secondary">
+<div id="main" class="main">
+<header class="border-bottom border-light bg-dark">
+    <nav class="navbar navbar-light bg-dark w-50">
+        <div class="btn-group dropleft">
+            <button type="button" class="btn btn-lg text-light dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                MessengerSY
+            </button>
+            <div class="dropdown-menu">
+                <span class="dropdown-item" style="cursor: pointer">Добавить контакт</span>
+            </div>
+        </div>
+    </nav>
+</header>
+<main class="fixHeight">
+    <div class="container-fluid h-100 bg-dark border border-light">
+        <div class="row h-100">
+            <div class="col-4 h-100 border-right border-light">
+                <ul class="nav nav-pills nav-fill border-bottom border-light mt-4 mb-2">
+                    <li class="nav-item hov" v-on:click="setContactsMenu">
+                        <span class="nav-link" style="cursor: pointer"><img width="50" height="50" src="images/no-translate-detected_318-9487 копия.png" /></span>
+                    </li>
+                    <li class="nav-item hov" v-on:click="setChatsMenu">
+                        <span style="cursor:pointer" class="nav-link"><img width="50" height="50" src="images/Без названия.png" /></span>
+                    </li>
+                </ul>
+                <div id="menubody" class="container-fluid p-0 overflow-auto" style="height: 88%">
+                    <div class="chats" v-if="isChatsMenu">
+                        <chatlist :chats="chats"></chatlist>
+                    </div>
+                    <div class="contacts" v-if="isContactsMenu">
+                        <contactlist :contacts="contacts"></contactlist>
+                    </div>
+                </div>
+            </div>
+            <div class="col h-100">
+                <div class="container-fluid h-100">
+                    <div class="row h-75">
+                        <div id="messcont" class="col h-100 mt-2 overflow-auto">
+                            <div id="messages" class="container-fluid">
+                                <messagelist :messages="currentChat.messages"></messagelist>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row align-items-end h-25 bg-dark">
+                        <div class="container-fluid h-100">
+                            <div class="row" style="margin-top: 20%">
+                                <div class="col h-100">
+                                    <input class="form-control bg-dark text-light" v-model="currentChat.typedText" v-bind:disabled="isDisableInputMessage" onkeydown="OnSendMessage(event)" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+</div>
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/vue@2.6.10/dist/vue.js"></script>
+<script src="https://code.jquery.com/jquery-3.3.1.js" integrity="sha256-2Kok7MbOyxpgUVvAk/HJ2jigOSYS2auK4Pfzbm7uH60=" crossorigin="anonymous"></script>
+<script src="js/signalr.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

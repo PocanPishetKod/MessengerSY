@@ -8,6 +8,8 @@ namespace MessengerSY.Models.Contact
 {
     public class ContactModel
     {
+        public int ContactId { get; set; }
+
         [Required]
         [StringLength(12, MinimumLength = 12)]
         public string PhoneNumber { get; set; }

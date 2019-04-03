@@ -253,7 +253,7 @@ namespace MessengerSY.Services.UserProfileService
             return table.Where(contact => contact.ContactOwnerId == userProfileId);
         }
 
-        public IEnumerable<Contact> GetLinkedUserProfileContacts(string linkedPhoneNumber, bool isTracking)
+        public IEnumerable<Contact> GetNotLinkedUserProfileContacts(string linkedPhoneNumber, bool isTracking)
         {
             if (string.IsNullOrWhiteSpace(linkedPhoneNumber))
                 throw new ArgumentNullException(nameof(linkedPhoneNumber));

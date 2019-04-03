@@ -33,12 +33,19 @@ namespace MessengerSY.Controllers
 
             var phoneNumbers = model.Contacts.Select(contact => contact.PhoneNumber);
             var existsUserProfiles = _userProfileService.GetExistsUserProfiles(phoneNumbers);
-            await InitializeContacts(model.Contacts, existsUserProfiles);
+            var createdContacts = await InitializeContacts(model.Contacts, existsUserProfiles);
 
             await AssociateUserProfileWithContacts();
             
-            var contacts = model.Contacts.Where(contact =>
-                existsUserProfiles.Select(userProfile => userProfile.PhoneNumber).Contains(contact.PhoneNumber));
+            var contacts = createdContacts.Where(contact =>
+                existsUserProfiles.Select(userProfile => userProfile.PhoneNumber).Contains(contact.PhoneNumber))
+                .Select(contact => new ContactModel()
+            {
+                    ContactId = contact.Id,
+                    ContactName = contact.ContactName,
+                    PhoneNumber = contact.PhoneNumber
+            });
+
             return Ok(new ContactsModel()
             {
                 Contacts = contacts
@@ -56,7 +63,7 @@ namespace MessengerSY.Controllers
             return contacts;
         }
 
-        private async Task InitializeContacts(IEnumerable<ContactModel> contacts, IEnumerable<UserProfile> existsUserProfiles)
+        private async Task<IEnumerable<Contact>> InitializeContacts(IEnumerable<ContactModel> contacts, IEnumerable<UserProfile> existsUserProfiles)
         {
             var userProfileId = User.GetUserProfileId();
             var newContacts = new List<Contact>(contacts.Count());
@@ -78,12 +85,13 @@ namespace MessengerSY.Controllers
             }
 
             await _userProfileService.AddContacts(newContacts);
+            return newContacts;
         }
 
         private async Task AssociateUserProfileWithContacts()
         {
             var userProfileId = User.GetUserProfileId();
-            var linkedContacts = _userProfileService.GetLinkedUserProfileContacts(User.GetUserProfilePhone(), true);
+            var linkedContacts = _userProfileService.GetNotLinkedUserProfileContacts(User.GetUserProfilePhone(), true);
             if (linkedContacts.Count() > 0)
             {
                 foreach (var contact in linkedContacts)
@@ -105,7 +113,8 @@ namespace MessengerSY.Controllers
                 Contacts = contacts.Select(contact => new ContactModel()
                 {
                     ContactName = contact.ContactName,
-                    PhoneNumber = contact.PhoneNumber
+                    PhoneNumber = contact.PhoneNumber,
+                    ContactId = contact.Id
                 })
             });
         }

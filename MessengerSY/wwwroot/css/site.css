@@ -1,0 +1,41 @@
+﻿.main {
+    margin-left: 15%;
+    margin-right: 15%;
+}
+
+.fixHeight {
+    height: 90vh;
+}
+
+#menubody .row:nth-child(n + 1) {
+    margin-top: 2%;
+}
+
+#menubody::-webkit-scrollbar {
+    width: 0;
+}
+
+#menubody {
+    -ms-overflow-style: none;
+}
+
+.hov:hover {
+    background-color: black;
+}
+
+#inputel:hover {
+    border-bottom: solid 2px white;
+}
+
+#messages .row:nth-child(n + 1) {
+    margin-top: 2%;
+}
+
+#messcont::-webkit-scrollbar {
+    width: 0;
+}
+
+.selectMenu {
+    background-color: black;
+    border-bottom: solid 1px white;
+}

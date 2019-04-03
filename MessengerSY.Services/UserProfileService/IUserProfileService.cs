@@ -28,7 +28,7 @@ namespace MessengerSY.Services.UserProfileService
         Task DeleteRefreshTokens(IEnumerable<RefreshToken> refreshTokens);
 
         Task<Contact> GetContact(int ownerUserProfileId, int linkedUserProfileId);
-        IEnumerable<Contact> GetLinkedUserProfileContacts(string linkedPhoneNumber, bool isTracking);
+        IEnumerable<Contact> GetNotLinkedUserProfileContacts(string linkedPhoneNumber, bool isTracking);
         IEnumerable<Contact> GetLinkedUserProfileContacts(int ownerUserProfileId, bool isTracking);
         IEnumerable<Contact> GetUserProfileContects(int userProfileId, bool IsTracking);
         Task AddContact(Contact contact);
