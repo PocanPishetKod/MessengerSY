@@ -46,6 +46,11 @@ function Contact(contactId, phoneNumber, contactName) {
     this.contactName = contactName;
 }
 
+function ScrollToLastMessage() {
+    var element = document.getElementById("messages");
+    element.firstElementChild.lastElementChild.scrollIntoView();
+}
+
 var mainData = {
     connection: {},
     messageGUID: 1,
@@ -97,6 +102,7 @@ Vue.component('chatdetails',
                 if (chat && !chat.messages) {
                     mainData.currentChat = chat;
                     LoadChatMessages(chat.chatId);
+                    ScrollToLastMessage();
                 }
             }
         },
@@ -183,6 +189,18 @@ window.onload = function () {
 
 var _token = "";
 
+function GetMomToken() {
+    $.ajax({
+        url: developDomen + "/api/account/testgetjwtmom",
+        method: "GET",
+        dataType: "json",
+        async: false,
+        success: function (token) {
+            _token = token;
+        }
+    });
+}
+
 function GetToken() {
     $.ajax({
         url: developDomen + "/api/account/testgetjwtmy",
@@ -193,6 +211,11 @@ function GetToken() {
             _token = token;
         }
     });
+}
+
+function SaveToken(token) {
+    localStorage.removeItem("token");
+    localStorage.setItem("token", token);
 }
 
 function GetLocalToken() {
@@ -220,6 +243,12 @@ function LoadUserProfileContacts() {
     });
 }
 
+function GetContactByPhoneNumber(phoneNumber) {
+    return mainData.contacts.find(function (contact) {
+        return contact.phoneNumber === phoneNumber;
+    });
+}
+
 function LoadUserProfilesChats() {
     $.ajax({
         url: developDomen + "/api/chat/getchats",
@@ -231,10 +260,8 @@ function LoadUserProfilesChats() {
         },
         success: function (data) {
             mainData.chats = data.chats.map(function (chat) {
-                var participants = chat.participants.map(function(participant) {
-                    var contact = mainData.contacts.find(function (contact) {
-                        return contact.phoneNumber === participant.phoneNumber;
-                    });
+                var participants = chat.participants.map(function (participant) {
+                    var contact = GetContactByPhoneNumber(participant.phoneNumber);
                     
                     if (!contact) {
                         return new UserProfile(participant.userProfileId,
@@ -257,7 +284,7 @@ function LoadUserProfilesChats() {
                 var lastMessage = new LastMessage(chat.lastMessage.textContent, sender);
 
                 var title = chat.title;
-                if (!title) {
+                if (!chat.isGroup) {
                     title = participants.find(function (participant) {
                         return participant.userProfileId !== mainData.userProfileId;
                     }).contactName;
@@ -319,14 +346,18 @@ function ConnectToHub() {
         .build();
 
     ConfigurateConnection(connection);
-
-    connection.start().then(function () {
-        console.log("asdadsaf");
-    }).catch(function (er) {
-        console.log(er);
-    });
+    StartConnection(connection);
 
     return connection;
+}
+
+function StartConnection(connection) {
+    connection.start().then(function() {
+        console.log("started");
+    }).catch(function (error) {
+        console.log("error");
+        console.log(error);
+    });
 }
 
 function ConfigurateConnection(connection) {
@@ -340,10 +371,38 @@ function ConfigurateConnection(connection) {
             console.log(message);
             InsertYourMessage(message, messageGUID);
         });
+
+    connection.onclose(function () {
+        console.log("restart");
+        StartConnection(connection);
+    });
 }
 
 function InsertMessage(message) {
+    var chat = mainData.chats.find(function(chat) {
+        return chat.chatId === message.chatId;
+    });
 
+    var ContainsMessage = chat.messages.find(function(mes) {
+        return mes.messageId === message.messageId;
+    });
+
+    if (!ContainsMessage) {
+        if (message.sender.userProfileId === mainData.userProfileId) {
+            message.sender.contactName = "Вы";
+        } else {
+
+            var contact = GetContactByPhoneNumber(message.sender.phoneNumber);
+            message.sender.contactName = contact
+                ? contact.contactName
+                : message.sender.nickname
+                ? message.sender.nickname
+                : message.sender.phoneNumber;
+        }
+
+        PushMessageToCurrentChat(message);
+        ScrollToLastMessage();
+    }
 }
 
 function InsertYourMessage(message, messageGUID) {
@@ -358,7 +417,9 @@ function InsertYourMessage(message, messageGUID) {
     var sender = new UserProfile(message.sender.userProfileId, message.sender.phoneNumber, message.nickname, "Вы");
     var newMessage = new Message(message.messageId, message.chatId, message.sendDate, message.textContent, sender);
 
-    Vue.set(chat.messages, messageIndex, newMessage);
+    chat.messages.splice(messageIndex, 1);
+    PushMessageToCurrentChat(newMessage);
+    ScrollToLastMessage();
 }
 
 function PushMessageToCurrentChat(message) {
@@ -374,8 +435,9 @@ function CreateMessage(chatId, messageText) {
 }
 
 function SendMessage(message) {
-    mainData.connection.invoke("SendMessage", message.chatId, message.textContent, message.GUID).catch(function (err) {
-        console.log(err);
+    mainData.connection.invoke("SendMessage", message.chatId, message.textContent, message.GUID).catch(function (error) {
+        console.log("Ошибка");
+        console.log(error);
     });
 }
 

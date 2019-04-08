@@ -22,5 +22,7 @@ namespace MessengerSY.Services.ChatService
 
         IEnumerable<Message> GetChatMessages(int chatId, DateTime? startLoadMessageDate, int messagesCount = 30, bool isTracking = false);
         Task AddMessage(Message message);
+        Task UpdateMessage(Message message);
+        Task UpdateMessages(IEnumerable<Message> messages);
     }
 }

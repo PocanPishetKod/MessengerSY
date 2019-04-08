@@ -60,13 +60,15 @@ namespace MessengerSY.Hubs
                     };
 
                     await _chatSrevice.AddMessage(message);
+                    chat.LastMessage.ThisMessageLastInChatId = null;
+                    message.ThisMessageLastInChatId = chat.Id;
+                    await _chatSrevice.UpdateMessages(new Message[] {chat.LastMessage, message});
 
                     chat.LastMessageSendDate = message.SendDate;
-                    chat.LastMessage = message;
                     await _chatSrevice.UpdateChat(chat);
 
                     var participantIds = _chatSrevice.GetChatParticipantIds(chat.Id);
-                    participantIds = participantIds.Except(new int[] { Context.User.GetUserProfileId() });
+                    //participantIds = participantIds.Except(new int[] { Context.User.GetUserProfileId() });
 
                     var onlineUserProfileIds = new List<string>();
                     var offlineUserProfileIds = new List<string>();

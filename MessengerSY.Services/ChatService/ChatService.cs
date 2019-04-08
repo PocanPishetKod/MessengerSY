@@ -197,6 +197,24 @@ namespace MessengerSY.Services.ChatService
             await _unitOfWork.Commit();
         }
 
+        public async Task UpdateMessage(Message message)
+        {
+            if (message == null)
+                throw new ArgumentNullException(nameof(message));
+
+            _messageRepository.Update(message);
+            await _unitOfWork.Commit();
+        }
+
+        public async Task UpdateMessages(IEnumerable<Message> messages)
+        {
+            if (messages == null)
+                throw new ArgumentNullException(nameof(messages));
+
+            _messageRepository.UpdateRange(messages);
+            await _unitOfWork.Commit();
+        }
+
         #endregion
     }
 }
