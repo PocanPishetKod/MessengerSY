@@ -27,4 +27,10 @@
     <ProjectReference Include="..\MessengerSY.Services\MessengerSY.Services.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="wwwroot\js\messageModule\" />
+    <Folder Include="wwwroot\js\contactModule\" />
+    <Folder Include="wwwroot\js\chatModule\" />
+  </ItemGroup>
+
 </Project>

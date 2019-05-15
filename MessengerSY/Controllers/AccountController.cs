@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Linq;
 using System.Threading.Tasks;
+using MessengerSY.Core.Domain;
 using MessengerSY.Extensions;
 using MessengerSY.Hubs;
 using MessengerSY.Models.Account;
@@ -92,6 +93,78 @@ namespace MessengerSY.Controllers
                 }
 
                 return Conflict();
+            }
+
+            return Forbid();
+        }
+
+        [HttpPost("testreg")]
+        public async Task<IActionResult> RegistrationForTests([FromBody]PhoneNumberModel model)
+        {
+            if (!User?.Identity?.IsAuthenticated ?? false)
+            {
+                if (!await _userProfileService.IsUserProfileExists(model.PhoneNumber))
+                {
+                    var refrashToken = new RefreshToken()
+                    {
+                        Token = _refreshTokenService.GenerateRefreshToken()
+                    };
+
+                    var userProfile = new UserProfile()
+                    {
+                        PhoneNumber = model.PhoneNumber
+                    };
+
+                    userProfile.RefreshTokens.Add(refrashToken);
+
+                    await _userProfileService.AddUserProfile(userProfile);
+
+                    var jwt = _jwtService.GenerateToken(userProfile.PhoneNumber, userProfile.Id, userProfile.Nickname,
+                        refrashToken.Id);
+
+                    return Ok(new TokensModel()
+                    {
+                        Jwt = jwt,
+                        RefreshToken = new RefreshTokenModel()
+                        {
+                            RefreshToken = refrashToken.Token,
+                            RefreshTokenId = refrashToken.Id,
+                            UserProfileId = userProfile.Id
+                        }
+                    });
+                }
+
+                return Conflict();
+            }
+
+            return Forbid();
+        }
+
+        [HttpPost("testauth")]
+        public async Task<IActionResult> AuthForTest([FromBody] PhoneNumberModel model)
+        {
+            if (!User?.Identity?.IsAuthenticated ?? false)
+            {
+                var userProfile = await _userProfileService.GetUserProfileByPhone(model.PhoneNumber);
+                if (userProfile != null)
+                {
+                    var refreshToken = _refreshTokenService.GenerateRefreshToken();
+                    var refreshTokenModel =
+                        await _userProfileService.CreateRefreshToken(refreshToken, userProfile.Id);
+                    var jwt = _jwtService.GenerateToken(model.PhoneNumber, userProfile.Id, userProfile.Nickname,
+                        refreshTokenModel.Id);
+
+                    return base.Ok(new TokensModel()
+                    {
+                        Jwt = jwt,
+                        RefreshToken = new RefreshTokenModel()
+                        {
+                            RefreshToken = refreshTokenModel.Token,
+                            RefreshTokenId = refreshTokenModel.Id,
+                            UserProfileId = userProfile.Id
+                        }
+                    });
+                }
             }
 
             return Forbid();

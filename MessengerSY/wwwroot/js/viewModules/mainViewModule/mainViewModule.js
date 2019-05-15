@@ -1,0 +1,3 @@
+﻿mainViewModule = new function () {
+
+};

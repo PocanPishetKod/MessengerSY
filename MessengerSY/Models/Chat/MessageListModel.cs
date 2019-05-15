@@ -7,6 +7,7 @@ namespace MessengerSY.Models.Chat
 {
     public class MessageListModel
     {
+        public int ChatId { get; set; }
         public IEnumerable<MessageModel> Messages { get; set; }
     }
 }

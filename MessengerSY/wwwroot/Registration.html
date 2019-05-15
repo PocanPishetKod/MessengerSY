@@ -1,0 +1,43 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Регистрация</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link rel="stylesheet" href="css/site.css" />
+</head>
+<body>
+<div class="login">
+    <div>
+        <div class="form-group">
+            <label for="inputPhone">Номер телефона</label>
+            <input value="+7" type="tel" class="form-control" id="inputPhone" aria-describedby="emailHelp" placeholder="Введите номер телефона">
+            <small id="emailHelp" class="form-text text-muted">Мы никому не передедим ваш номер телефона</small>
+            <small id="emailHelp" class="form-text text-muted">Уже зарегистрированы? <a href="Login.html">Войдите</a></small>
+        </div>
+        <button id="reg" class="btn btn-primary">Зарегистрироваться</button>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.3.1.js" integrity="sha256-2Kok7MbOyxpgUVvAk/HJ2jigOSYS2auK4Pfzbm7uH60=" crossorigin="anonymous"></script>
+<script type="text/javascript">
+    window.onload = function () {
+        if (messengerSYAuth.isAuthenticate()) {
+            document.location.href = "/index.html";
+        }
+    }
+
+    var regButton = document.getElementById("reg");
+    regButton.onclick = function () {
+        var input = document.getElementById("inputPhone");
+
+        var authData = messengerSYAuth.registrate(input.value);
+        if (authData) {
+            messengerSYAuth.saveAuthData(authData);
+        } else {
+            alert("Что-то пошло не так");
+        }
+    }
+</script>
+</body>
+</html>

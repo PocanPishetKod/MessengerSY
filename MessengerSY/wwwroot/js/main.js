@@ -180,7 +180,13 @@ new Vue({
 });
 
 window.onload = function () {
-    GetToken();
+    alert(GetSavedToken());
+    //if (!GetSavedToken()) {
+    //    document.location.href = "/login.html";
+    //}
+
+    _token = GetSavedToken();
+
     mainData.connection = ConnectToHub();
 
     LoadUserProfileContacts();
@@ -192,7 +198,7 @@ var _token = "";
 function GetMomToken() {
     $.ajax({
         url: developDomen + "/api/account/testgetjwtmom",
-        method: "GET",
+        type: "GET",
         dataType: "json",
         async: false,
         success: function (token) {
@@ -204,7 +210,7 @@ function GetMomToken() {
 function GetToken() {
     $.ajax({
         url: developDomen + "/api/account/testgetjwtmy",
-        method: "GET",
+        type: "GET",
         dataType: "json",
         async: false,
         success: function (token) {
@@ -218,6 +224,10 @@ function SaveToken(token) {
     localStorage.setItem("token", token);
 }
 
+function GetSavedToken() {
+    return localStorage.getItem("jwt");
+}
+
 function GetLocalToken() {
     return _token;
 }
@@ -229,7 +239,7 @@ function SetAuthorizationHeader(xhr) {
 function LoadUserProfileContacts() {
     $.ajax({
         url: developDomen + "/api/contact/getcontacts",
-        method: "GET",
+        type: "GET",
         dataType: "json",
         async: false,
         beforeSend: function (xhr) {
@@ -252,7 +262,7 @@ function GetContactByPhoneNumber(phoneNumber) {
 function LoadUserProfilesChats() {
     $.ajax({
         url: developDomen + "/api/chat/getchats",
-        method: "GET",
+        type: "GET",
         dataType: "json",
         async: false,
         beforeSend: function(xhr) {
@@ -299,7 +309,7 @@ function LoadUserProfilesChats() {
 function LoadChatMessages(chatId) {
     $.ajax({
         url: developDomen + "/api/chat/getchatmessages",
-        method: "GET",
+        type: "GET",
         dataType: "json",
         beforeSend: function (xhr) {
             SetAuthorizationHeader(xhr);

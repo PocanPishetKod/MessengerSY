@@ -44,7 +44,7 @@ namespace MessengerSY.Services.JwtService
                     new Claim(HelpJwtConstants.PHONE_NUMBER, phoneNumber),
                     new Claim(HelpJwtConstants.ID, userProfileId.ToString()),
                     new Claim(HelpJwtConstants.REFRESH_TOKEN_ID, refreshTokenId.ToString()),
-                    new Claim(HelpJwtConstants.NICKNAME, nickname)
+                    new Claim(HelpJwtConstants.NICKNAME, nickname ?? "")
                 },
                 signingCredentials: new SigningCredentials(_jwtInfo.SymmetricSecurityKey, _jwtInfo.SigningAlgorithm),
                 expires: DateTime.Now.AddMinutes(_jwtInfo.JwtTokenLifeTimeMinutes)

@@ -82,7 +82,6 @@ namespace MessengerSY.Controllers
                 var messages = _chatSrevice.GetChatMessages(chatId, startDate, count, true);
                 var viewModels = messages.Select(message => new MessageModel()
                 {
-
                     MessageId = message.Id,
                     ChatId = message.ChatId,
                     SendDate = message.SendDate,
@@ -97,6 +96,7 @@ namespace MessengerSY.Controllers
 
                 return Ok(new MessageListModel()
                 {
+                    ChatId = chatId,
                     Messages = viewModels
                 });
             }
